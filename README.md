@@ -1,0 +1,2 @@
+# vcw
+VirCitiesWorker
