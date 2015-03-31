@@ -1,17 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Net;
 using System.IO;
+using System.Net;
 using System.Runtime.Serialization.Json;
+using System.Text;
 using VCW.BigFights;
-using VCW.Users;
 using VCW.CityElections;
-using VCW.PrestigeWars;
 using VCW.Newspapers;
+using VCW.PrestigeWars;
 using VCW.Quests;
 using VCW.UserItems;
+using VCW.Users;
+using System.Collections.Generic;
 
 namespace VCW
 {
@@ -37,7 +36,8 @@ namespace VCW
         // fight now unavailable
         // private Uri _fightUri = new Uri("http://api.vircities.com/military/pve/gangs/1/fight");
 
-
+        private UsersShortInfosResult _shortInfo = null;
+        private DateTime _nextEat = DateTime.MaxValue;
 
         public VCLib(string useragent)
         {
@@ -45,6 +45,74 @@ namespace VCW
                 throw new ArgumentNullException("useragent");
             _USERAGENT = useragent;
         }
+
+        public void updateInfo()
+        {
+            _shortInfo = usersShortInfos();
+            bigFightsSilentView();
+            cityElectionsSilentView();
+            prestigeWarsSilentView();
+            newspapersLatestSubscriptionsPost();
+        }
+
+        public void logon(string username, string password){
+            usersAppAuth(username, password);
+            updateInfo();
+            questsUserQuests();
+            usersCheck();
+        }
+
+        public void eat()
+        {
+            // Время истечения ближайшего эффекта
+            DateTime nextEat = DateTime.MaxValue;
+            // temp
+            DateTime time;
+            // Добавляем названия продуктов, от которых существует эффект в массив
+            List<string> effects = new List<string>();
+            foreach (VCW.Users.UsersShortInfosResult.EatEffect effect in _shortInfo.eatEffects)
+            {
+                effects.Add(effect.item.name);
+                time = fromUnixTimestamp(effect.end);
+                if (time < nextEat)
+                    nextEat = time;
+            }
+
+            UserItemsStorageResult items = userItemsStorage();
+
+            // Идём по инвентарю и едим то, что ещё не ели
+            foreach (VCW.UserItems.UserItemsStorageResult.Storage.ItemsArray item in items.storage.itemsArray)
+            {
+                if (EnumItemType.FOOD == item.itemType.type)
+                {
+                    if (!effects.Contains(item.itemType.name))
+                    {
+                        time = DateTime.UtcNow.AddSeconds(userItemsGetInfo(item.userItem.id).itemInfo.itemType.energy_rest_speed_expire);
+                        if (time < nextEat)
+                            nextEat = time;
+                        userItemsStorage();
+                        userItemsEatUserItem(item.userItem.id);
+                        userItemsStorage();
+                        updateInfo();
+                    }
+                }
+            }
+            _nextEat = nextEat;
+        }
+
+
+
+
+        public DateTime fromUnixTimestamp(int timestamp)
+        {
+            // First make a System.DateTime equivalent to the UNIX Epoch.
+            DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0);
+
+            // Add the number of seconds in UNIX timestamp to be converted.
+            return dateTime.AddSeconds(timestamp);
+        }
+
+        #region API
 
         private UsersAppAuthResult usersAppAuth(string username, string password)
         {
@@ -305,5 +373,7 @@ namespace VCW
 
             return rootobj;
         }
+
+        #endregion API
     }
 }

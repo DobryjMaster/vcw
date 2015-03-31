@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Runtime.Serialization;
 
 namespace VCW.Users
 {
@@ -74,9 +75,9 @@ namespace VCW.Users
             }
         }
 
-        public class EatEffect
+        public class EatEffect : IEquatable<EatEffect>
         {
-            public List<Item> item { get; set; }
+            public Item item { get; set; }
             public int bonus { get; set; }
             public int end { get; set; }
 
@@ -85,6 +86,14 @@ namespace VCW.Users
                 public string name_ru { get; set; }
                 public string image { get; set; }
                 public string name { get; set; }
+            }
+
+            public bool Equals(EatEffect other)
+            {
+                if (0 == String.Compare(this.item.name, other.item.name, StringComparison.OrdinalIgnoreCase) && this.bonus == other.bonus)
+                    return true;
+                else
+                    return false;
             }
         } 
     }
@@ -343,10 +352,13 @@ namespace VCW.UserItems
             public List<ItemsArray> itemsArray { get; set; }
             public int inventorySize { get; set; }
 
+            [DataMember]
             public class ItemsArray
             {
-                public UserItem UserItem { get; set; }
-                public ItemType ItemType { get; set; }
+                [DataContract(Name = "UserItem")]
+                public UserItem userItem { get; set; }
+                [DataContract(Name = "ItemType")]
+                public ItemType itemType { get; set; }
 
                 public class UserItem
                 {
@@ -365,7 +377,7 @@ namespace VCW.UserItems
                     public string name_ru { get; set; }
                     public string name_en { get; set; }
                     public string @class { get; set; }
-                    public string type { get; set; }
+                    public EnumItemType type { get; set; }  // string
                     public string image { get; set; }
                     public int can_use { get; set; }
                     public int special { get; set; }
@@ -393,17 +405,22 @@ namespace VCW.UserItems
         public ItemInfo itemInfo { get; set; }
         public string effect { get; set; }
 
+        [DataMember]
         public class ItemInfo
         {
-            public ItemType ItemType { get; set; }
-            public ItemTypeCategory ItemTypeCategory { get; set; }
-            public UserItem UserItem { get; set; }
+            [DataContract(Name = "ItemType")]
+            public ItemType itemType { get; set; }
+            [DataContract(Name = "ItemTypeCategory")]
+            public ItemTypeCategory itemTypeCategory { get; set; }
+            [DataContract(Name = "UserItem")]
+            public UserItem userItem { get; set; }
 
             public class ItemType
             {
                 public int id { get; set; }
                 public string name_ru { get; set; }
                 public string image { get; set; }
+                // Item type
                 public string type { get; set; }
                 public int receipt_id { get; set; }
                 public string min_damage { get; set; }
@@ -422,11 +439,14 @@ namespace VCW.UserItems
                 public string dodge { get; set; }
                 public string antidodge { get; set; }
                 public string dmg_absorb { get; set; }
+                // Bonus to delta_recovery_energy
                 public int energy_rest_speed_bonus { get; set; }
+                // Expire in seconds
                 public int energy_rest_speed_expire { get; set; }
                 public int strength_val { get; set; }
                 public int user_creator_id { get; set; }
                 public object ammunition_id { get; set; }
+                // Stack size
                 public int quantity_in_stack { get; set; }
                 public int special { get; set; }
                 public string weapon_type { get; set; }
@@ -438,7 +458,7 @@ namespace VCW.UserItems
 
             public class ItemTypeCategory
             {
-                public string name { get; set; }
+                public EnumItemTypeCategory name { get; set; } //string
             }
 
             public class UserItem
@@ -449,7 +469,7 @@ namespace VCW.UserItems
                 public int quantity { get; set; }
                 public int city_id { get; set; }
                 public int equipped { get; set; }
-                public object equipped_slot { get; set; }
+                public string equipped_slot { get; set; }
                 public int expires { get; set; }
                 public int strength { get; set; }
                 public int created { get; set; }
@@ -471,5 +491,82 @@ namespace VCW.UserItems
             public string msg { get; set; }
             public string @class { get; set; }
         }
+    }
+
+    [DataMember]
+    public enum EnumItemType
+    {
+        [DataContract(Name = "food")]
+        FOOD,
+        [DataContract(Name = "comfortFurniture")]
+        COMFORT_FURNITURE,
+        [DataContract(Name = "vintageFurniture")]
+        VINTAGE_FURNITURE,
+        [DataContract(Name = "jewelry")]
+        JEWELRY,
+        [DataContract(Name = "clothes")]
+        CLOTHES,
+        [DataContract(Name = "weapon")]
+        WEAPON,
+        [DataContract(Name = "ammunition")]
+        AMMUNITION,
+    }
+
+    /// <summary>
+    /// ItemTypeCategory for food
+    /// </summary>
+    [DataMember]
+    public enum EnumItemTypeCategory
+    {
+        #region food
+        /// <summary>
+        /// Молоко
+        /// Молоко (Milk),
+        /// </summary>
+        [DataContract(Name = "Молоко")]
+        MILK,
+        /// <summary>
+        /// Мясо
+        /// Мясо (Meat), 
+        /// </summary>
+        [DataContract(Name = "Мясо")]
+        MEAT,
+        /// <summary>
+        /// Полноценный обед
+        /// Пицца "Рыбацкая" (Fisher's pizza),
+        /// </summary>
+        [DataContract(Name = "Полноценный обед")]
+        FULL_LUNCH,
+        /// <summary>
+        /// Кулинария
+        /// Мясная булка (Meat bread),
+        /// </summary>
+        [DataContract(Name = "Кулинария")]
+        COOKERY,
+        /// <summary>
+        /// Рыба
+        /// Рыба (Fish),
+        /// </summary>
+        [DataContract(Name = "Рыба")]
+        FISH,
+        /// <summary>
+        /// Зерно
+        /// Овощи (Vegetables), Зерно (Grain)
+        /// </summary>
+        [DataContract(Name = "Зерно")]
+        GRAIN,
+        /// <summary>
+        /// Горячие блюда
+        /// Жаркое (Stew),
+        /// </summary>
+        [DataContract(Name = "Горячие блюда")]
+        HOT_DISHES,
+        /// <summary>
+        /// Закуска
+        /// Рыбный пирог (Fish pie),
+        /// </summary>
+        [DataContract(Name = "Закуска")]
+        SNACK,
+        #endregion food
     }
 }
